@@ -1,0 +1,158 @@
+---
+title: "Percent_recruitment"
+author: "Joy Buongiorno"
+description: "Svalbard MAGs, percent recruitment plot using percent recruitment for bins provided by anvi'o v 7.1 For GitHub Repo (curated from several other exploratory R scripts not publicly available)." 
+date: '2022-07-06'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r libraries}
+library(dplyr)
+library(ggplot2)
+library(gplots)
+library(reshape)
+```
+
+```{r recruitment, bins percentage by phylum}
+GTDB_tax<-read.csv("MAG_GTDBtax.csv")
+per_recruit<-read.csv("bins_percent_recruitment.csv")
+per_recruit_long<-melt(per_recruit)
+names(per_recruit_long)[names(per_recruit_long) == "value"] <- "percent_recruitment"
+names(per_recruit_long)[names(per_recruit_long) == "variable"] <- "NCBI_name"
+per_recruit_long_tax<-left_join(per_recruit_long, GTDB_tax, by = "NCBI_name")
+loc<-read.csv("sample_location.csv")
+per_recruit_long_tax_loc<-left_join(per_recruit_long_tax,loc, by="samples")
+
+boxplotPal<-c("Proteobacteria"= "#0A4D7C",
+              "Desulfobacterota" = "#D6E354",
+              "Planctomycetota" = "#F82F06",
+              "Bacteroidota" = "#11A896",
+              "Actinobacteriota" ="#FF5733",
+              "Verrucomicrobiota"="#3386FF", 
+              "Chloroflexota" = "#74ff33ff",
+              "Myxococcota" = "#F1FE6F",
+              "Nitrospinota" = "#6FFEED",
+              "BMS3Abin14" = "#808080",
+              "Thermoproteota" = "#FFCCCC",
+              "Krumholzibacteriota" = "#BB172B",
+              "Acidobacteriota" = "#E4A55E",
+              "Nitrospirota" = "#205A50",
+              "Gemmatimonadota" = "#B9A0CA")
+          
+  
+
+
+ggplot(per_recruit_long_tax_loc) +
+  geom_bar(aes(x = samples, y = percent_recruitment, fill = Phylum), stat = 'identity', width = 0.5) +
+   scale_fill_manual(values=boxplotPal) +
+  labs(x = "Sample",
+       y = "Percent Recruitment of Transcripts") +
+  guides(fill=guide_legend(title="Phylum")) +
+  theme_bw() +
+  theme(panel.grid.major = element_line(size = 0),
+        panel.grid.minor = element_line(size = 0),
+        axis.text = element_text(size=15),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
+        strip.text = element_text(size = 20),
+        legend.title = element_text(size=15),
+        legend.text = element_text(size = 15),
+        axis.title = element_text(size=15)) +
+  facet_grid(cols=vars(Fjord), scales = "free")
+```
+
+ggplot(per_recruit_long_tax_loc) +
+  geom_bar(aes(x = samples, y = percent_recruitment, fill = Phylum), stat = 'identity', width = 0.5) +
+   scale_fill_manual(values=boxplotPal) +
+  labs(x = "Sample",
+       y = "Percent Recruitment of Transcripts") +
+  guides(fill=guide_legend(title="Phylum")) +
+  theme_bw() +
+  theme(panel.grid.major = element_line(size = 0),
+        panel.grid.minor = element_line(size = 0),
+        axis.text = element_text(size=15),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
+        strip.text = element_text(size = 20),
+        legend.title = element_text(size=15),
+        legend.text = element_text(size = 15),
+        axis.title = element_text(size=15)) +
+  facet_grid(cols=vars(Fjord), scales = "free")
+```{r summarize, phylum recruitment}
+sum_recruit <- per_recruit_long_tax_loc %>%
+  group_by(Phylum, Fjord) %>%
+  summarize(average = mean(percent_recruitment), max = max(percent_recruitment), min = min(percent_recruitment), sum = sum(percent_recruitment)) 
+#write.csv(sum_recruit, "sum_recruit.csv")
+```
+
+```{r stats for Bacteriodota}
+depth<-read.csv("sample_depth.csv") 
+per_recruit_long_tax_loc_depth<-left_join(per_recruit_long_tax_loc, depth, by = "samples")
+
+model<-lm(percent_recruitment ~ Depth, data = per_recruit_long_tax_loc_depth, subset=Phylum == "Bacteroidota")
+modsum<-summary(model)
+r2 = modsum$adj.r.squared
+my.p<-modsum$coefficients[2,4]
+plot(subset(per_recruit_long_tax_loc_depth, Phylum == "Bacteroidota", select = c(Depth, percent_recruitment))) + abline(model, col = "red")
+
+rp = vector('expression',2)
+rp[1] = substitute(expression(italic(R)^2 == MYVALUE), 
+		list(MYVALUE = format(r2,dig=3)))[2]
+rp[2] = substitute(expression(italic(p) == MYOTHERVALUE), 
+		list(MYOTHERVALUE = format(my.p, digits = 2)))[2]
+legend('topright', legend = rp, bty = 'n')
+
+```
+
+```{r stats for Thermoproteota}
+model<-lm(percent_recruitment ~ Depth, data = per_recruit_long_tax_loc_depth, subset=Phylum == "Thermoproteota")
+modsum<-summary(model)
+r2 = modsum$adj.r.squared
+my.p<-modsum$coefficients[2,4]
+plot(subset(per_recruit_long_tax_loc_depth, Phylum == "Thermoproteota", select = c(Depth, percent_recruitment))) + abline(model, col = "red")
+
+rp = vector('expression',2)
+rp[1] = substitute(expression(italic(R)^2 == MYVALUE), 
+		list(MYVALUE = format(r2,dig=3)))[2]
+rp[2] = substitute(expression(italic(p) == MYOTHERVALUE), 
+		list(MYOTHERVALUE = format(my.p, digits = 2)))[2]
+legend('topright', legend = rp, bty = 'n')
+
+
+```
+
+```{r stats for Desulfobacterota, KF }
+model<-lm(percent_recruitment ~ Depth, data = per_recruit_long_tax_loc_depth, subset=Phylum == "Desulfobacterota" & Fjord == "Kongsfjorden")
+modsum<-summary(model)
+r2 = modsum$adj.r.squared
+my.p<-modsum$coefficients[2,4]
+plot(subset(per_recruit_long_tax_loc_depth, Phylum == "Desulfobacterota" & Fjord == "Kongsfjorden", select = c(Depth, percent_recruitment))) + abline(model, col = "red")
+
+rp = vector('expression',2)
+rp[1] = substitute(expression(italic(R)^2 == MYVALUE), 
+		list(MYVALUE = format(r2,dig=3)))[2]
+rp[2] = substitute(expression(italic(p) == MYOTHERVALUE), 
+		list(MYOTHERVALUE = format(my.p, digits = 2)))[2]
+legend('topright', legend = rp, bty = 'n')
+
+
+```
+
+```{r stats for Desulfobacterota, VK }
+model<-lm(percent_recruitment ~ Depth, data = per_recruit_long_tax_loc_depth, subset=Phylum == "Desulfobacterota" & Fjord == "Van Keulenfjorden")
+modsum<-summary(model)
+r2 = modsum$adj.r.squared
+my.p<-modsum$coefficients[2,4]
+plot(subset(per_recruit_long_tax_loc_depth, Phylum == "Desulfobacterota" & Fjord == "Van Keulenfjorden", select = c(Depth, percent_recruitment))) + abline(model, col = "red")
+
+rp = vector('expression',2)
+rp[1] = substitute(expression(italic(R)^2 == MYVALUE), 
+		list(MYVALUE = format(r2,dig=3)))[2]
+rp[2] = substitute(expression(italic(p) == MYOTHERVALUE), 
+		list(MYOTHERVALUE = format(my.p, digits = 2)))[2]
+legend('topright', legend = rp, bty = 'n')
+
+
+```

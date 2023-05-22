@@ -1,0 +1,74 @@
+---
+title: "FeGenie_genomes"
+author: "Joy Buongiorno"
+Description: "Analyze the gene count of genes for each category among all MAGs. Combine at phylum level"
+date: '2022-07-29'
+output: html_document
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+```
+
+```{r load libraries}
+library(ggplot2)
+library(reshape)
+library(dplyr)
+```
+
+
+```{r load data from FeGenie output and prepare}
+Fe_dat<-read.csv("/Users/joy.buongiorno/Documents/Research/Svalbard_MAG_analysis/FeGenie/Genomes_no_bams/FeGenie-heatmap-data.csv")
+Fe_dat_melt<-melt(Fe_dat)
+names(Fe_dat_melt)[names(Fe_dat_melt) == "variable"] <- "Bin_name"
+```
+
+```{r add taxonomy}
+GTDB_tax<-read.csv("/Users/joy.buongiorno/Documents/Research/Svalbard_MAG_analysis/2021_R_Analysis/MAG_GTDBtax.csv")
+Fe_dat_melt_tax<-left_join(Fe_dat_melt, GTDB_tax, by = "Bin_name")
+```
+
+```{r summarize for plotting}
+p_sums <- Fe_dat_melt_tax %>%
+    group_by(Phylum, Category) %>%
+  summarize(sum=sum(value))
+p_sums
+p_sums[p_sums == 0] <-NA
+```
+
+```{r dot plot using modified FeGenie R code}
+dotplot<-ggplot(na.omit(p_sums), aes(x = factor(Phylum, levels=unique(Phylum)), y=Category, size=sum), alpha=1) +
+      geom_point(aes(color=Category)) +
+      scale_size_area(max_size = 25) + 
+      labs(x="Phylum", y="Iron Category") +
+      scale_y_discrete(labels=c("iron_aquisition-iron_uptake" = "Iron uptake",
+                            "iron_aquisition-heme_uptake" = "Heme uptake",
+                            "iron_aquisition-heme_lyase" = "Heme lyase",
+                            "iron_aquisition-siderophore_synthesis" = "Siderophore synthesis",
+                            "iron_aquisition-siderophore_transport_potential" = "Siderophore transport potential",
+                            "iron_aquisition-siderophore_transport" = "Siderophore transport",
+                            "iron_gene_regulation" = "Iron gene regulation",
+                            "iron_oxidation" = "Iron oxidation",
+                            "iron_reduction" = "Iron reduction",
+                            "iron_storage" = "Iron storage",
+                            "probable_iron_reduction" = "Probable iron reduction",
+                            "possible_iron_oxidation_and_possible_iron_reduction" = "Possible iron oxidation and possible iron reduction",
+                            "magnetosome_formation"= "Magnetosome formation",
+                            "iron_aquisition-iron_transport"="iron acquisition-iron transport",
+                            "iron_aquisition-heme_transport" ="iron acquisition-heme transport",
+                            "iron_aquisition-heme_oxygenase"="iron acquisition-heme oxygenase")) +
+      theme(panel.background = element_rect(fill = "white", colour = "black", size = 1, linetype = "solid"),
+        panel.border = element_rect(colour="black", size=1, fill=NA),
+        strip.background=element_rect(fill='white', colour='white'),
+        strip.text = element_text(face="bold", size=10),
+        panel.grid.major = element_line(size = 0.1, colour = "gray"),
+        panel.grid.minor = element_line(size = 0.1, colour = "gray"),
+        axis.text = element_text(size=22, colour="black"),
+        axis.title = element_text(face="bold", size=18),
+        axis.text.x = element_text(vjust = 1, angle = 45, color = "black", size = 22, hjust=1),
+        legend.position="right",
+        legend.text =  element_text(size=18)) 
+dotplot
+```
+

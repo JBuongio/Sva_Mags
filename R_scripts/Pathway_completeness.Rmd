@@ -1,0 +1,402 @@
+---
+title: "Svalbard_MAG_metabo_pathways"
+author: "Joy Buongiorno"
+desciption: "Svalbard MAGs, encoded metabolism according to anvi'o v 7.1  anvi-estimate-metabolism
+For GitHub Repo (curated from several other exploratory R scripts not publicly available). All pathways are included, even those that are not above the 75% completeness threshold (for heatmap purposes)"
+date: '2022-07-06'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+```
+
+
+```{r load libraries}
+library(reshape2)
+library(reshape)
+library(dplyr)
+library(ggplot2)
+library(gplots)
+```
+
+First, analyze the contents of the genomes. 
+
+```{r import metabolism data and taxonomy, echo=FALSE}
+m<-read.csv("Estimate_metabo_scaling_TPM_all.csv")
+names(m)[names(m) == "Bin_name"] <- "NCBI_name"
+colnames(m)
+```
+
+Subset and Melt for downstream analyses
+```{r melt}
+
+AB_MG<-m[1:7]
+metabo_AB<-melt(AB_MG)
+metabo_AB$seq_type<-"Metagenome"
+metabo_AB$site<-"AB"
+metabo_AB$depth<-"NA"
+metabo_AB$fjord<-"VK"
+
+AC_MG<-m[c(1:6,8)]
+metabo_AC<-melt(AC_MG)
+metabo_AC$seq_type<-"Metagenome"
+metabo_AC$site<-"AC"
+metabo_AC$depth<-"NA"
+metabo_AC$fjord<-"VK"
+
+F_MG<-m[c(1:6,9)]
+metabo_F<-melt(F_MG)
+metabo_F$seq_type<-"Metagenome"
+metabo_F$site<-"F"
+metabo_F$depth<-"NA"
+metabo_F$fjord<-"KF"
+
+F_01<-m[c(1:6,10)]
+metabo_F01<-melt(F_01)
+metabo_F01$seq_type<-"Metatranscriptome"
+metabo_F01$site<-"F"
+metabo_F01$depth<-"0.5"
+metabo_F01$fjord<-"KF"
+
+F_12<-m[c(1:6,11)]
+metabo_F12<-melt(F_12)
+metabo_F12$seq_type<-"Metatranscriptome"
+metabo_F12$site<-"F"
+metabo_F12$depth<-"1.5"
+metabo_F12$fjord<-"KF"
+
+F_23<-m[c(1:5,12)]
+metabo_F23<-melt(F_23)
+metabo_F23$seq_type<-"Metatranscriptome"
+metabo_F23$site<-"F"
+metabo_F23$depth<-"2.5"
+metabo_F23$fjord<-"KF"
+
+F_34<-m[c(1:6,13)]
+metabo_F34<-melt(F_34)
+metabo_F34$seq_type<-"Metatranscriptome"
+metabo_F34$site<-"F"
+metabo_F34$depth<-"3.5"
+metabo_F34$fjord<-"KF"
+
+F_45<-m[c(1:6,14)]
+metabo_F45<-melt(F_45)
+metabo_F45$seq_type<-"Metatranscriptome"
+metabo_F45$site<-"F"
+metabo_F45$depth<-"4.5"
+metabo_F45$fjord<-"KF"
+
+F_56<-m[c(1:6,15)]
+metabo_F56<-melt(F_56)
+metabo_F56$seq_type<-"Metatranscriptome"
+metabo_F56$site<-"F"
+metabo_F56$depth<-"5.5"
+metabo_F56$fjord<-"KF"
+
+P_01<-m[c(1:6,16)]
+metabo_P01<-melt(P_01)
+metabo_P01$seq_type<-"Metatranscriptome"
+metabo_P01$site<-"P"
+metabo_P01$depth<-"0.5"
+metabo_P01$fjord<-"KF"
+
+P_12<-m[c(1:6,17)]
+metabo_P12<-melt(P_12)
+metabo_P12$seq_type<-"Metatranscriptome"
+metabo_P12$site<-"P"
+metabo_P12$depth<-"1.5"
+metabo_P12$fjord<-"KF"
+
+P_23<-m[c(1:6,18)]
+metabo_P23<-melt(P_23)
+metabo_P23$seq_type<-"Metatranscriptome"
+metabo_P23$site<-"P"
+metabo_P23$depth<-"2.5"
+metabo_P23$fjord<-"KF"
+
+P_34<-m[c(1:6,19)]
+metabo_P34<-melt(P_34)
+metabo_P34$seq_type<-"Metatranscriptome"
+metabo_P34$site<-"P"
+metabo_P34$depth<-"3.5"
+metabo_P34$fjord<-"KF"
+
+P_56<-m[c(1:6,20)]
+metabo_P56<-melt(P_56)
+metabo_P56$seq_type<-"Metatranscriptome"
+metabo_P56$site<-"P"
+metabo_P56$depth<-"5.5"
+metabo_P56$fjord<-"KF"
+
+AB_01<-m[c(1:6,21)]
+metabo_AB_01<-melt(AB_01)
+metabo_AB_01$seq_type<-"Metatranscriptome"
+metabo_AB_01$site<-"AB"
+metabo_AB_01$depth<-"0.5"
+metabo_AB_01$fjord<-"VK"
+
+AB_12<-m[c(1:6,22)]
+metabo_AB_12<-melt(AB_12)
+metabo_AB_12$seq_type<-"Metatranscriptome"
+metabo_AB_12$site<-"AB"
+metabo_AB_12$depth<-"1.5"
+metabo_AB_12$fjord<-"VK"
+
+
+AB_23<-m[c(1:6,23)]
+metabo_AB_23<-melt(AB_23)
+metabo_AB_23$seq_type<-"Metatranscriptome"
+metabo_AB_23$site<-"AB"
+metabo_AB_23$depth<-"2.5"
+metabo_AB_23$fjord<-"VK"
+
+
+AB_34<-m[c(1:6,24)]
+metabo_AB_34<-melt(AB_34)
+metabo_AB_34$seq_type<-"Metatranscriptome"
+metabo_AB_34$site<-"AB"
+metabo_AB_34$depth<-"3.5"
+metabo_AB_34$fjord<-"VK"
+
+
+AB_23.2<-m[c(1:6,25)]
+metabo_AB_23.2<-melt(AB_23.2)
+metabo_AB_23.2$seq_type<-"Metatranscriptome"
+metabo_AB_23.2$site<-"AB"
+metabo_AB_23.2$depth<-"2.5"
+metabo_AB_23.2$fjord<-"VK"
+
+
+AC_12<-m[c(1:6,26)]
+metabo_AC_12<-melt(AC_12)
+metabo_AC_12$seq_type<-"Metatranscriptome"
+metabo_AC_12$site<-"AC"
+metabo_AC_12$depth<-"1.5"
+metabo_AC_12$fjord<-"VK"
+
+
+AC_23<-m[c(1:6,27)]
+metabo_AC_23<-melt(AC_23)
+metabo_AC_23$seq_type<-"Metatranscriptome"
+metabo_AC_23$site<-"AC"
+metabo_AC_23$depth<-"2.5"
+metabo_AC_23$fjord<-"VK"
+
+AC_34<-m[c(1:6,28)]
+metabo_AC_34<-melt(AC_34)
+metabo_AC_34$seq_type<-"Metatranscriptome"
+metabo_AC_34$site<-"AC"
+metabo_AC_34$depth<-"3.5"
+metabo_AC_34$fjord<-"VK"
+
+AC_45<-m[c(1:6,29)]
+metabo_AC_45<-melt(AC_45)
+metabo_AC_45$seq_type<-"Metatranscriptome"
+metabo_AC_45$site<-"AC"
+metabo_AC_45$depth<-"4.5"
+metabo_AC_45$fjord<-"VK"
+
+m_long<-rbind(metabo_AB,metabo_AB_01,metabo_AB_12,metabo_AB_23,metabo_AB_23.2, metabo_AB_34,metabo_AC,metabo_AC_12,metabo_AC_23,metabo_AC_34,metabo_AC_45,metabo_F,metabo_F01,metabo_F12,metabo_F23,metabo_F34,metabo_F45,metabo_F56,metabo_P01,metabo_P12, metabo_P23, metabo_P34,metabo_P56)
+```
+
+# Add taxonomy
+
+```{r taxonomic assignment}
+GTDB_tax<-read.csv("MAG_GTDBtax.csv")
+m_long<-left_join(m_long,GTDB_tax, by = "NCBI_name")
+m_long$Bin_name<-NULL
+m<-left_join(m, GTDB_tax, by = "NCBI_name")
+m$Bin_name<-NULL
+colnames(m_long)
+colnames(m)
+```
+
+# Carbon within the most numerous and transcriptionally abundant MAGs
+# Want C-cycling (carbohydrate metabolism and C-fixation) pathway as row, bin name as column. 
+## Proteobacteria
+
+```{r heatmap, carbohydrate metabolism in Proteobacteria}
+heatdat<-filter(m[c(1,2,5,6, 30)], module_subcategory == "Central carbohydrate metabolism" |  module_subcategory ==  "Carbon fixation", Phylum == "Proteobacteria")
+heatdat$name_cat<-paste(heatdat$module_subcategory, heatdat$module_name, sep="_")
+heatdat$module_subcategory<-NULL
+heatdat$Phylum<-NULL
+heatdat<-dcast(data = heatdat, formula = name_cat~NCBI_name, fun.aggregate=max, value.var = "module_completeness" ) 
+heatdat[heatdat == -Inf]  <- 0 # make -Inf into 0
+
+names<-heatdat[,1] #assign module names names as labels
+matrix<-data.matrix(heatdat[,2:ncol(heatdat)]) #make the dataframe into a matrix
+#View(matrix)
+rownames(matrix) <-names #assign row names for matrix
+matrix<-matrix[rowSums(matrix[])>0,] # Remove rows with no completeness
+
+#pallete<-colorRampPalette(c("gold", "white", "blue"))(n=10)
+col <- rev(heat.colors(999))
+heatmap.2(matrix,
+          main = "Metabolic pathway completeness", # heat map title
+          notecol="black",      # change font color of cell labels to black
+          density.info="histogram",  # turns off density plot inside color legend
+          trace="none",         # turns off trace lines inside the heat map
+          #scale = c("column"), na.rm=TRUE, #row scaling turns 0's into positives if there are other samples with negatives
+          margins =c(10,15),     # widens margins around plot
+          col=col,
+          #cexCol = 1.3,
+          #cexRow = 1.3,
+          dendrogram ='none',   #column = mag, row = pathways  
+          srtCol=45,
+          Rowv=FALSE, #with this set to "=" only, sorts rows
+          Colv=, #with this set to "=" only, sorts columns
+          colsep=1:ncol(matrix),
+          rowsep=1:nrow(matrix)) 
+```
+
+## Verrucomicrobiota          
+```{r heatmap, carbohydrate metabolism in Verrucomicrobiota}
+heatdat<-filter(m[c(1,2,5,6, 30)], module_subcategory == "Central carbohydrate metabolism" |  module_subcategory ==  "Carbon fixation", Phylum == "Verrucomicrobiota")
+heatdat$name_cat<-paste(heatdat$module_subcategory, heatdat$module_name, sep="_")
+heatdat$module_category<-NULL
+heatdat$Phylum<-NULL
+heatdat<-dcast(data = heatdat, formula = name_cat~NCBI_name, fun.aggregate=max, value.var = "module_completeness" ) 
+heatdat[heatdat == -Inf]  <- 0 # make -Inf into 0
+
+names<-heatdat[,1] #assign module names names as labels
+matrix<-data.matrix(heatdat[,2:ncol(heatdat)]) #make the dataframe into a matrix
+#View(matrix)
+rownames(matrix) <-names #assign row names for matrix
+matrix<-matrix[rowSums(matrix[])>0,] # Remove rows with no completeness
+
+#pallete<-colorRampPalette(c("gold", "white", "blue"))(n=10)
+col <- rev(heat.colors(999))
+heatmap.2(matrix,
+          main = "Metabolic pathway completeness", # heat map title
+          notecol="black",      # change font color of cell labels to black
+          density.info="histogram",  # turns off density plot inside color legend
+          trace="none",         # turns off trace lines inside the heat map
+          #scale = c("column"), na.rm=TRUE, #row scaling turns 0's into positives if there are other samples with negatives
+          margins =c(10,15),     # widens margins around plot
+          col=col,
+          #cexCol = 1.3,
+          #cexRow = 1.3,
+          dendrogram ='none',   #column = mag, row = pathways  
+          srtCol=45,
+          Rowv=FALSE, #with this set to "=" only, sorts rows
+          Colv=,  #with this set to "=" only, sorts columns
+          colsep=1:ncol(matrix),
+          rowsep=1:nrow(matrix)) 
+
+```
+
+## Desulfobacterota
+```{r heatmap, carbohydrate metabolism in Desulfobacterota}
+heatdat<-filter(m[c(1,2,5,6, 30)], module_subcategory == "Central carbohydrate metabolism" |  module_subcategory ==  "Carbon fixation", Phylum == "Desulfobacterota")
+heatdat$name_cat<-paste(heatdat$module_subcategory, heatdat$module_name, sep="_")
+heatdat$module_category<-NULL
+heatdat$Phylum<-NULL
+heatdat<-dcast(data = heatdat, formula = name_cat~NCBI_name, fun.aggregate=max, value.var = "module_completeness" ) 
+heatdat[heatdat == -Inf]  <- 0 # make -Inf into 0
+
+names<-heatdat[,1] #assign module names names as labels
+matrix<-data.matrix(heatdat[,2:ncol(heatdat)]) #make the dataframe into a matrix
+#View(matrix)
+rownames(matrix) <-names #assign row names for matrix
+matrix<-matrix[rowSums(matrix[])>0,] # Remove rows with no completeness
+
+#pallete<-colorRampPalette(c("gold", "white", "blue"))(n=10)
+col <- rev(heat.colors(999))
+heatmap.2(matrix,
+          main = "Metabolic pathway completeness", # heat map title
+          notecol="black",      # change font color of cell labels to black
+          density.info="histogram",  # turns off density plot inside color legend
+          trace="none",         # turns off trace lines inside the heat map
+          #scale = c("column"), na.rm=TRUE, #row scaling turns 0's into positives if there are other samples with negatives
+          margins =c(10,15),     # widens margins around plot
+          col=col,
+          #cexCol = 1.3,
+          #cexRow = 1.3,
+          dendrogram ='none',   #column = mag, row = pathways  
+          srtCol=45,
+          Rowv=FALSE, #with this set to "=" only, sorts rows
+          Colv=,#with this set to "=" only, sorts columns
+          colsep=1:ncol(matrix),
+          rowsep=1:nrow(matrix)) 
+
+```
+
+## Other phyla
+```{r heatmaps, carbohydrate metabolism in other phyla}
+heatdat<-filter(m[c(1,2,5,6, 30)], module_subcategory == "Central carbohydrate metabolism" |  module_subcategory ==  "Carbon fixation", Phylum != "Desulfobacterota" & Phylum !="Verrucomicrobiota" & Phylum !="Proteobacteria")
+heatdat$name_cat<-paste(heatdat$module_subcategory, heatdat$module_name, sep="_")
+heatdat$module_category<-NULL
+heatdat$Phylum<-NULL
+heatdat<-dcast(data = heatdat, formula = name_cat~NCBI_name, fun.aggregate=max, value.var = "module_completeness" )
+heatdat[heatdat == -Inf]  <- 0 # make -Inf into 0
+
+names<-heatdat[,1] #assign module names names as labels
+matrix<-data.matrix(heatdat[,2:ncol(heatdat)]) #make the dataframe into a matrix
+#View(matrix)
+rownames(matrix) <-names #assign row names for matrix
+matrix<-matrix[rowSums(matrix[])>0,] # Remove rows with no completeness
+
+#pallete<-colorRampPalette(c("gold", "white", "blue"))(n=10)
+col <- rev(heat.colors(999))
+heatmap.2(matrix,
+          main = "Metabolic pathway completeness", # heat map title
+          notecol="black",      # change font color of cell labels to black
+          density.info="histogram",  # turns off density plot inside color legend
+          trace="none",         # turns off trace lines inside the heat map
+          #scale = c("column"), na.rm=TRUE, #row scaling turns 0's into positives if there are other samples with negatives
+          margins =c(10,15),     # widens margins around plot
+          col=col,
+          #cexCol = 1.3,
+          #cexRow = 1.3,
+          dendrogram ='none',   #column = mag, row = pathways  
+          srtCol=45,
+          Rowv=FALSE, #with this set to "=" only, sorts rows
+          Colv=,#with this set to "=" only, sorts columns
+          colsep=1:ncol(matrix),
+          rowsep=1:nrow(matrix)) 
+
+```
+ 
+# Sulfur metabolism within all MAGs 
+```{r sulfur in all MAGs}        
+heatdat<-filter(m[c(1,2,5,6, 30)], module_subcategory == "Sulfur metabolism")
+heatdat$taxonomy<-paste(heatdat$Phylum, heatdat$NCBI_name)
+heatdat$module_subcategory<-NULL
+heatdat$Phylum<-NULL
+heatdat<-dcast(data = heatdat, formula = module_name~taxonomy, fun.aggregate=max, value.var = "module_completeness" ) 
+heatdat[heatdat == -Inf]  <- 0 # make -Inf into 0
+
+names<-heatdat[,1] #assign module names names as labels
+matrix<-data.matrix(heatdat[,2:ncol(heatdat)]) #make the dataframe into a matrix
+#View(matrix)
+rownames(matrix) <-names #assign row names for matrix
+matrix<-matrix[rowSums(matrix[])>0,] # Remove rows with no completeness
+
+
+col <- colorRampPalette(c("white", "blue"))(100)
+heatmap.2(matrix,
+          main = "Metabolic pathway completeness", # heat map title
+          notecol="black",      # change font color of cell labels to black
+          density.info="histogram",  # turns off density plot inside color legend
+          trace="none",         # turns off trace lines inside the heat map
+          #scale = c("column"), na.rm=TRUE, #row scaling turns 0's into positives if there are other samples with negatives
+          margins =c(10,15),     # widens margins around plot
+          col=col,
+          #cexCol = 1.3,
+          #cexRow = 1.3,
+          dendrogram ='none',   #column = mag, row = pathways  
+          srtCol=45,
+          Rowv=FALSE, #with this set to "=" only, sorts rows
+          Colv=FALSE, #with this set to "=" only, sorts columns
+          colsep=1:ncol(matrix),
+          rowsep=1:nrow(matrix)) 
+```
+
+
+
+
+
+
+        
+        

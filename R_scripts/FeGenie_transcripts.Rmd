@@ -1,0 +1,151 @@
+---
+title: "FeGenie_transcripts"
+author: "Joy Buongiorno"
+date: '2022-08-03'
+output: html_document
+Description: "Ran FeGenie program on all transcripts, separated by station The depth file for each MAG was then combined in Unix, with the total average coverage across all depths in cmbsf reported. Files were prepared this way so GTDB taxonomy could be added."
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r load libraries}
+library(reshape2)
+library(dplyr)
+library(viridis)
+library(colorblindcheck)
+library(ggpubr)
+library(tidyverse)
+library(broom)
+library(AICcmodavg)
+```
+
+```{r load in and prepare station-specific transcript data}
+AC_trans<-read.csv("FeGenie-average-heatmap-data_stnAC_trans.csv")
+AC_trans_melt<-melt(AC_trans)
+names(AC_trans_melt)[names(AC_trans_melt) == "variable"] <- "Bin_name"
+names(AC_trans_melt)[names(AC_trans_melt) == "value"] <- "Normalized_transcript_coverage"
+AC_trans_melt$Station<-"AC"
+AC_trans_melt$Fjord<-"VK"
+
+AB_trans<-read.csv("FeGenie-average-heatmap-data_stnAB_trans.csv")
+AB_trans_melt<-melt(AB_trans)
+names(AB_trans_melt)[names(AB_trans_melt) == "variable"] <- "Bin_name"
+names(AB_trans_melt)[names(AB_trans_melt) == "value"] <- "Normalized_transcript_coverage"
+AB_trans_melt$Station<-"AB"
+AB_trans_melt$Fjord<-"VK"
+
+F_trans<-read.csv("FeGenie-average-heatmap-data_stnF_trans.csv")
+F_trans_melt<-melt(F_trans)
+names(F_trans_melt)[names(F_trans_melt) == "variable"] <- "Bin_name"
+names(F_trans_melt)[names(F_trans_melt) == "value"] <- "Normalized_transcript_coverage"
+F_trans_melt$Station<-"F"
+F_trans_melt$Fjord<-"KF"
+
+P_trans<-read.csv("FeGenie-average-heatmap-data_stnP_trans.csv")
+P_trans_melt<-melt(P_trans)
+names(P_trans_melt)[names(P_trans_melt) == "variable"] <- "Bin_name"
+names(P_trans_melt)[names(P_trans_melt) == "value"] <- "Normalized_transcript_coverage"
+P_trans_melt$Station<-"P"
+P_trans_melt$Fjord<-"KF"
+
+# Combine together and remove .fasta from Bin_name column
+All_trans_averages<-rbind(AC_trans_melt, AB_trans_melt, F_trans_melt, P_trans_melt)
+All_trans_averages$Bin_name<-gsub(".fasta", "", as.character(All_trans_averages$Bin_name))
+```
+
+```{r add taxonomy}
+GTDB_tax<-read.csv("MAG_GTDBtax.csv")
+All_trans_averages_tax<-left_join(All_trans_averages, GTDB_tax, by = "Bin_name")
+```
+
+```{r palette for plots}
+cols<-c("F" = "#cc79a7","P" = "#5e29c2ff", "AC" = "#0072b2", "AB" = "#39c706ff") # To match colors in mean coverage figure
+palette_check(cols, plot=TRUE)
+```
+
+```{r subset data}
+# Remove all instances of 0s and rows that have fewer than 5 hits per MAG across all iron categories
+d <- filter(All_trans_averages_tax, Normalized_transcript_coverage > 0)
+nrow(d)
+d_2<-d[as.numeric(ave(as.character(d$Bin_name), as.character(d$Bin_name), FUN=length)) >= 5, ]
+nrow(d_2)
+```
+
+```{r plot, boxplot faceted by phylum}
+
+box_phylum<- d_2 %>%
+  ggplot(aes(x=Category, y=Normalized_transcript_coverage, fill = Station)) + 
+  geom_boxplot(aes(group=Category), fill = "white", outlier.color = NA) +
+  geom_point(pch=21, aes(fill=Station)) +
+  scale_fill_manual(values=cols) +
+  ylab("Normalized abundance") +
+  xlab("Iron Category") +
+  ggtitle("Abundance across phyla") +
+  theme_bw() +
+  theme(axis.text.x = element_text(hjust = 1, size=12)) +
+  theme(axis.text.y = element_text(hjust = 1, size=13)) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+  theme(axis.text.x = element_text(angle = 45, hjust=1)) +
+  facet_grid(cols=vars(Phylum))
+
+box_phylum
+```
+
+```{r plot, boxplot faceted by station}
+
+box_station<- d_2 %>%
+  ggplot(aes(x=Category, y=Normalized_transcript_coverage, fill = Phylum)) + 
+  geom_boxplot(aes(group=Category), fill = "white", outlier.color = NA) +
+  geom_point(pch=21, aes(fill=Phylum)) +
+  scale_fill_viridis(discrete=TRUE) +
+  ylab("Normalized abundance") +
+  xlab("Iron Category") +
+  ggtitle("Abundance across stations") +
+  theme_bw() +
+  theme(axis.text.x = element_text(hjust = 1, size=13)) +
+  theme(axis.text.y = element_text(hjust = 1, size=13)) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  facet_grid(cols=vars(Station))
+
+box_station
+```
+
+```{r stats}
+# One-way ANOVA to test the effect of station on Normalized abundance
+
+
+summary(d_2)
+# Only VK stations
+aov_d2<-aov(Normalized_transcript_coverage ~ Station, data=subset(d_2, Fjord == 'VK'))
+summary(aov_d2) #Not statistically significant at alpha = 0.05
+
+# No AB
+aov_d2<-aov(Normalized_transcript_coverage ~ Station, data=subset(d_2, Station == 'F' | Station == 'P' | Station == 'AC'))
+summary(aov_d2) #Not statistically significant at alpha = 0.05
+
+# All stations
+aov_d2<-aov(Normalized_transcript_coverage ~ Station, data=d_2)
+summary(aov_d2) #Not statistically significant at alpha = 0.05
+
+# By category
+aov_d2<-aov(Normalized_transcript_coverage ~ Category, data=d_2)
+summary(aov_d2) #Not statistically significant at alpha = 0.05
+
+# By category, only VK
+aov_d2<-aov(Normalized_transcript_coverage ~ Category, data=subset(d_2, Fjord == 'VK'))
+summary(aov_d2) #Not statistically significant at alpha = 0.05
+
+# By Phylum
+aov_d2<-aov(Normalized_transcript_coverage ~ Phylum, data=subset(d_2, Fjord == 'VK'))
+summary(aov_d2) #Not statistically significant at alpha = 0.05
+```
+
+```{r summary stats}
+p<-d_2%>%
+  group_by(Station, Phylum) %>%
+  summarize(Sum = unique(Normalized_transcript_coverage))
+p
+```

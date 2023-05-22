@@ -1,0 +1,141 @@
+---
+title: "Percent_recruitment"
+author: "Joy Buongiorno"
+description: "Svalbard MAGs, CAZyme distribution by phyla. For GitHub Repo (curated from several other exploratory R scripts not publicly available)." 
+date: '2022-07-06'
+output: html_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r load libraries}
+library(ggplot2)
+library(reshape)
+library(dplyr)
+```
+
+```{r import data}
+cazymes<-read.csv("/Users/joy.buongiorno/Documents/Research/Svalbard_MAG_analysis/2021_R_Analysis/dbCAN_MAGs.csv")
+GTDB_tax<-read.csv("MAG_GTDBtax.csv")
+```
+
+```{r reformat and add taxonomy}
+cazymes_m<-melt(cazymes)
+names(cazymes_m)[names(cazymes_m) == "variable"] <-"NCBI_name"
+
+cazymes_m_tax<-left_join(cazymes_m, GTDB_tax, by = "NCBI_name")
+```
+
+```{r plot data}
+cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+
+p<-ggplot(data=na.omit(cazymes_m_tax), aes(x=Phylum, y=value, fill=Class.x)) +
+  geom_bar(stat="identity") +
+  guides(fill=guide_legend(title="CAZyme Class")) +
+  scale_fill_manual(values=cbPalette)+
+theme_bw() +
+  theme(
+        axis.text = element_text(size=15),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
+        strip.text = element_text(size = 20),
+        legend.title = element_text(size=15),
+        legend.text = element_text(size = 15),
+        axis.title = element_text(size=15)) +
+  labs(title="Distribution of CAZymes Across Phyla", 
+       x="Phylum", y = "Count")
+p
+
+# Normalized 
+n<-ggplot(data=na.omit(cazymes_m_tax), aes(x=Phylum, y=value, fill=Class.x)) +
+  geom_bar(stat="identity", position="fill") +
+  guides(fill=guide_legend(title="CAZyme Class")) +
+  scale_fill_manual(values=cbPalette)+
+theme_bw() +
+  theme(
+        axis.text = element_text(size=15),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
+        strip.text = element_text(size = 20),
+        legend.title = element_text(size=15),
+        legend.text = element_text(size = 15),
+        axis.title = element_text(size=15)) +
+  labs(title="Distribution of CAZymes Across Phyla", 
+       x="Phylum", y = "Normalized Count")
+n
+```
+
+```{r summarize}
+sum_recruit_c <- cazymes_m_tax %>%
+  group_by(Phylum, Class.x) %>%
+  summarize(average = mean(value), max = max(value), min = min(value), sum = sum(value)) 
+sum_recruit_c
+
+sum_recruit_p <- cazymes_m_tax %>%
+  group_by(Phylum) %>%
+  summarize(average = sum(value)/length(unique(NCBI_name)), max = max(value), min = min(value), sum = sum(value)) 
+sum_recruit_p
+```
+# Transcripts
+
+```{r read in and prepare transcript data from KF}
+KF_CAZymes<-read.csv("/Users/joy.buongiorno/Documents/Research/Svalbard_MAG_analysis/2021_R_Analysis/dbCAN_trans_raw_KF.csv")
+
+KF_CAZymes_agg<-KF_CAZymes %>%
+  dplyr::count(Bin_name, annotation)
+KF_CAZymes_agg$Fjord<-"KF"
+
+#overall number, regardless of category
+p <- VK_CAZymes %>%
+  group_by(Bin_name) %>%
+  dplyr::count(Bin_name) 
+
+VK_CAZymes<-read.csv("/Users/joy.buongiorno/Documents/Research/Svalbard_MAG_analysis/2021_R_Analysis/dbCAN_trans_raw_VK.csv")
+
+VK_CAZymes_agg<-VK_CAZymes %>%
+  dplyr::count(Bin_name, annotation)
+VK_CAZymes_agg$Fjord<-"VK"
+
+#overall number, regardless of category
+k <- VK_CAZymes %>%
+  group_by(Bin_name) %>%
+  dplyr::count(Bin_name) 
+
+CAZymes_transcripts<-rbind(KF_CAZymes_agg,VK_CAZymes_agg)
+
+CAZymes_transcripts_tax<-left_join(CAZymes_transcripts, GTDB_tax, by = "Bin_name")
+
+```
+
+```{r plot transcribed CAZymes}
+k<-ggplot(data=na.omit(CAZymes_transcripts_tax), aes(x=Phylum, y=n, fill=annotation)) +
+  geom_bar(stat="identity") +
+  guides(fill=guide_legend(title="CAZyme Class")) +
+  scale_fill_manual(values=cbPalette)+
+theme_bw() +
+  theme(
+        axis.text = element_text(size=15),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
+        strip.text = element_text(size = 20),
+        legend.title = element_text(size=15),
+        legend.text = element_text(size = 15),
+        axis.title = element_text(size=15)) +
+  labs(title="Transcription of CAZymes Across Phyla", 
+       x="Phylum", y = "Count")
+k
+
+l<-ggplot(data=na.omit(CAZymes_transcripts_tax), aes(x=Phylum, y=n, fill=annotation)) +
+  geom_bar(stat="identity", position = "fill") +
+  guides(fill=guide_legend(title="CAZyme Class")) +
+  scale_fill_manual(values=cbPalette)+
+theme_bw() +
+  theme(
+        axis.text = element_text(size=15),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
+        strip.text = element_text(size = 20),
+        legend.title = element_text(size=15),
+        legend.text = element_text(size = 15),
+        axis.title = element_text(size=15)) +
+  labs(title="Transcription of CAZymes Across Phyla", 
+       x="Phylum", y = "Count")
+l
+```
